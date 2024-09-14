@@ -82,7 +82,8 @@ def interpret_xtriggers_in_tomejson(xtriggers):
 
     # Creates the description
     if description_string:
-        return FILLER*2 + ", "+FILLER.join(description_string)
+        connector = ", " + FILLER
+        return FILLER*2 + connector.join(description_string)
     else:
         raise Exception(
             f"Couldn't find a matching reading pattern {xtriggers}")
