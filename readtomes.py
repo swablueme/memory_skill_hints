@@ -1,7 +1,6 @@
 from collections import Counter
 import json
 import re
-import itertools
 import sys
 from constants import *
 from utility import *
@@ -9,8 +8,8 @@ sys.stdin.reconfigure(encoding='utf-8')
 sys.stdout.reconfigure(encoding='utf-8')
 
 
+# These files are edited
 tomes_json = load_json(LOCATION_OF_TOMES_JSON)
-# There are two different lesson jsons so have all of them in one file
 skills_json = load_json(LOCATION_OF_SKILLS_JSON)
 
 
@@ -136,9 +135,7 @@ def format_recipes(skill_id):
 
 
 def generate_patched_skills_file():
-
     for skill in skills_json["elements"]:
-
         reading_description = format_tech_tree_entry(
             skill["id"])
         recipe_description = format_recipes(skill["id"])
@@ -163,4 +160,4 @@ def generate_patched_tomes_file():
 
 if __name__ == "__main__": 
     generate_patched_skills_file()
-    # generate_patched_tomes_file()
+    generate_patched_tomes_file()
