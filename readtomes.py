@@ -39,25 +39,28 @@ def format_memory_description(memory_id):
     return READING_STRING_TEMPLATE.format(memory=description, memory_aspects=", ".join(aspects_strings))
 
 
-def format_lesson_description(lesson_id):
-    MASTERY_STRING_TEMPLATE = "<i>[First mastery gives <b>{lesson}]</b>"
+def format_lesson_description(lesson_id, xtrigger_aspect):
+    # For example, the following line will only appear if the xtrigger for mastery.edge is present
+    # @#mastery.edge|TEXT_TO_APPEAR_ONLY_AFTER_MASTERING@
+
+    MASTERY_STRING_TEMPLATE = "@#{xtrigger_aspect}|#|<i>[First mastery gives <b>{lesson}]</b>@"
     matching_lessons = LESSONS_LOOKUP.lookup_id(lesson_id, 1)
 
     description = matching_lessons[0]["Label"]
-    return MASTERY_STRING_TEMPLATE.format(lesson=description)
+    return MASTERY_STRING_TEMPLATE.format(lesson=description, xtrigger_aspect=xtrigger_aspect)
 
 
 def interpret_xtriggers_in_tomejson(xtriggers):
     description_string = []
-    for k, read_results in xtriggers.items():
-        if re.match(READING_XTRIGGER_PATTERN, k):
+    for xtrigger_aspect, read_results in xtriggers.items():
+        if re.match(READING_XTRIGGER_PATTERN, xtrigger_aspect):
             for item in read_results:
                 description_string.insert(
                     0, format_memory_description(item["id"]))
-        elif re.match(MASTERING_XTRIGGER_PATTERN, k):
+        elif re.match(MASTERING_XTRIGGER_PATTERN, xtrigger_aspect):
             for item in read_results:
                 description_string.append(
-                    format_lesson_description(item["id"]))
+                    format_lesson_description(item["id"], xtrigger_aspect.replace("mastering.", "mastery.")))
 
     # Creates the description
     if description_string:
