@@ -42,6 +42,8 @@ def format_memory_description(memory_id):
 def format_lesson_description(lesson_id, xtrigger_aspect):
     # For example, the following line will only appear if the xtrigger for mastery.edge is present
     # @#mastery.edge|TEXT_TO_APPEAR_ONLY_AFTER_MASTERING@
+    # and if you need it to appear if without it
+    # @#mastery.edge|#|TEXT_TO_APPEAR_IF_NOT_MASTERED@
 
     MASTERY_STRING_TEMPLATE = "@#mastery.{xtrigger_aspect}|#|<i>[First mastery gives <b>{lesson}]</b>@"
     matching_lessons = LESSONS_LOOKUP.lookup_id(lesson_id, 1)
