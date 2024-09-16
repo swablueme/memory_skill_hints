@@ -43,7 +43,7 @@ def format_lesson_description(lesson_id, xtrigger_aspect):
     # For example, the following line will only appear if the xtrigger for mastery.edge is present
     # @#mastery.edge|TEXT_TO_APPEAR_ONLY_AFTER_MASTERING@
 
-    MASTERY_STRING_TEMPLATE = "@#{xtrigger_aspect}|#|<i>[First mastery gives <b>{lesson}]</b>@"
+    MASTERY_STRING_TEMPLATE = "@#mastery.{xtrigger_aspect}|#|<i>[First mastery gives <b>{lesson}]</b>@"
     matching_lessons = LESSONS_LOOKUP.lookup_id(lesson_id, 1)
 
     description = matching_lessons[0]["Label"]
@@ -53,14 +53,15 @@ def format_lesson_description(lesson_id, xtrigger_aspect):
 def interpret_xtriggers_in_tomejson(xtriggers):
     description_string = []
     for xtrigger_aspect, read_results in xtriggers.items():
+        mastering_pattern = re.match(MASTERING_XTRIGGER_PATTERN, xtrigger_aspect)
         if re.match(READING_XTRIGGER_PATTERN, xtrigger_aspect):
             for item in read_results:
                 description_string.insert(
                     0, format_memory_description(item["id"]))
-        elif re.match(MASTERING_XTRIGGER_PATTERN, xtrigger_aspect):
+        elif mastering_pattern:
             for item in read_results:
                 description_string.append(
-                    format_lesson_description(item["id"], xtrigger_aspect.replace("mastering.", "mastery.")))
+                    format_lesson_description(item["id"], mastering_pattern.group(1)))
 
     # Creates the description
     if description_string:

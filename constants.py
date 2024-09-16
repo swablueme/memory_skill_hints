@@ -12,7 +12,7 @@ LOCATION_OF_RECIPES = r"recipes\crafting_2_keeper.json", r"recipes\crafting_3_sc
 # In the xtrigger section of the json, it always starts with stuff like reading.edge or mastering.edge etc
 # Can use regex to recognise these patterns
 READING_XTRIGGER_PATTERN = r"^reading\..*$"
-MASTERING_XTRIGGER_PATTERN = r"^mastering\..*$"
+MASTERING_XTRIGGER_PATTERN = r"^mastering\.(.*)$"
 
 TECH_TREE_PATH_NAME_PATTERN = r"^w\.(.*)$"
 TECH_TREE_SOUL_FRAGMENT_PATTERN = r"^a\.(.*)$"
