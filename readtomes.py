@@ -99,7 +99,7 @@ def format_tech_tree_entry(skill_id):
         rewards.append([soul_fragment, no_longer_commitable_path])
     
     # the commit action makes the unused path unusable
-    rewards[0][0], rewards[0][1] = rewards[0][1], rewards[0][0]
+    rewards[0][0], rewards[1][0] = rewards[1][0], rewards[0][0]
 
     return TECH_TREETEMPLATE.format(rewards=" or ".join([REWARDS_TEMPLATE.format(
             soul_fragment=soul_fragment, tech_tree_path=tech_tree_path) for soul_fragment, tech_tree_path in rewards]))
