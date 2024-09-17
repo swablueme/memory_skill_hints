@@ -83,8 +83,8 @@ def format_tech_tree_entry(skill_id):
     REWARDS_TEMPLATE = "<b>{soul_fragment} from {tech_tree_path}</b>"
     TECH_TREETEMPLATE = "@#wisdom.committed|#|<i>[Yields {rewards}]@"
     for path in tech_tree_commit_paths:
-        soul_fragment_name = ""
-        tech_tree_path = ""
+        soul_fragment = ""
+        no_longer_commitable_path = ""
         for skill in path["mutations"]:
             skill_name = skill["mutate"]
             path_match = re.match(TECH_TREE_PATH_NAME_PATTERN,
@@ -92,15 +92,17 @@ def format_tech_tree_entry(skill_id):
             soul_fragment_match = re.match(TECH_TREE_SOUL_FRAGMENT_PATTERN,
                                            skill_name)
             if path_match != None:
-                tech_tree_path = path_match.group(1).capitalize()
+                no_longer_commitable_path = path_match.group(1).capitalize()
             elif soul_fragment_match != None:
-                soul_fragment_name = SOULFRAGMENT_LOOKUP.lookup_id(
+                soul_fragment = SOULFRAGMENT_LOOKUP.lookup_id(
                     soul_fragment_match.group(1), 1)[0]["label"]
+        rewards.append([soul_fragment, no_longer_commitable_path])
+    
+    # the commit action makes the unused path unusable
+    rewards[0][0], rewards[0][1] = rewards[0][1], rewards[0][0]
 
-        rewards.append(REWARDS_TEMPLATE.format(
-            soul_fragment=soul_fragment_name, tech_tree_path=tech_tree_path))
-
-    return TECH_TREETEMPLATE.format(rewards=" or ".join(rewards))
+    return TECH_TREETEMPLATE.format(rewards=" or ".join([REWARDS_TEMPLATE.format(
+            soul_fragment=soul_fragment, tech_tree_path=tech_tree_path) for soul_fragment, tech_tree_path in rewards]))
 
 
 def format_recipes(skill_id):
