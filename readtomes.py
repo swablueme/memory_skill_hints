@@ -81,7 +81,7 @@ def format_tech_tree_entry(skill_id):
     rewards = []
 
     REWARDS_TEMPLATE = "<b>{soul_fragment} from {tech_tree_path}</b>"
-    TECH_TREETEMPLATE = "<i>[Yields {rewards}]"
+    TECH_TREETEMPLATE = "@#wisdom.committed|#|<i>[Yields {rewards}]@"
     for path in tech_tree_commit_paths:
         soul_fragment_name = ""
         tech_tree_path = ""
@@ -144,9 +144,13 @@ def generate_patched_skills_file():
     for skill in skills_json["elements"]:
         reading_description = format_tech_tree_entry(
             skill["id"])
+        
         recipe_description = format_recipes(skill["id"])
 
-        skill["Desc"] = skill["Desc"] + FILLER*2 + reading_description + FILLER*2 + recipe_description
+        if recipe_description:
+            skill["Desc"] += FILLER*2 + recipe_description
+
+        skill["Desc"] += FILLER*2 + reading_description
 
     f = open(SAVED_SKILLS_FILE, "w")
     f.write(json.dumps(skills_json))
@@ -157,7 +161,7 @@ def generate_patched_tomes_file():
     for book in tomes_json["elements"]:
         reading_description = interpret_xtriggers_in_tomejson(
             book["xtriggers"])
-        book["Desc"] = book["Desc"] + reading_description
+        book["Desc"] += reading_description
 
     f = open(SAVED_TOMES_FILE, "w")
     f.write(json.dumps(tomes_json))
