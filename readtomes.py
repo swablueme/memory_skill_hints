@@ -93,7 +93,7 @@ def interpret_xtriggers_in_tomejson(xtriggers):
 
     # Creates the description
     if description_string:
-        connector = ", " + FILLER
+        connector = FILLER
         return FILLER * 2 + connector.join(description_string)
     else:
         raise Exception(
@@ -135,14 +135,14 @@ def format_recipes(skill_id):
     recipes = RECIPES_LOOKUP.filter(lambda x: (skill_id in x["reqs"]))
     RECIPES_STRING_TEMPLATE = "<b><i>[Possible recipes]:</b><i>" + FILLER
 
-    RECIPE_LINE_TEMPLATE = "<i> + [<b>{recipe}({item_aspects})]: </b> ({aspects}{additional_item_string})</i>"
-    ADDITIONAL_ITEM_TEMPLATE = " | {additional_items}"
+    RECIPE_LINE_TEMPLATE = "<i> + [<b>{recipe} ({item_aspects}) ] - </b> {aspects}{additional_item_string}</i>"
+    ADDITIONAL_ITEM_TEMPLATE = ", {additional_items}"
     description_lines = []
     for recipe in recipes:
         recipe_name, aspect_list, additional_items_for_recipe_names = format_item_description(
             "Label", "reqs", recipe)
 
-        recipe_product = [k for k, v in recipe["effects"].items() if v == -1]
+        recipe_product = [k for k, v in recipe["effects"].items() if v == 1]
         if len(recipe_product) != 1:
             raise Exception(
                 f"Unexpected number of products that wasn't 1!: {recipe_product}")
