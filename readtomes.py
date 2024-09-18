@@ -16,26 +16,33 @@ skills_json = load_json(LOCATION_OF_SKILLS_JSON)
 def filter_non_aspect_items(aspect_dict):
     return [(attribute, value) for attribute, value in aspect_dict if re.match(REMOVE_BOOST_ABILITIES_PATTERN, attribute) == None]
 
+
 def get_sprite_items(aspect_dict):
-    return [(attribute, value) for attribute, value in aspect_dict if re.match(ASPECTS_PATTERN, attribute)]    
+    return [(attribute, value) for attribute, value in aspect_dict if re.match(ASPECTS_PATTERN, attribute)]
 
 
-def format_memory_description(memory_id):
-    READING_STRING_TEMPLATE = "<i>[Upon reading gives <b>{memory}]</b> ({memory_aspects})</i>"
-    matching_memories = ASPECTS_LOOKUP.lookup_id(memory_id, 1)
+def format_item_description(item_id):
+    matching_item = ASPECTS_LOOKUP.lookup_id(item_id, 1)[0]
 
-    memory = matching_memories[0]
-    description = memory["Label"]
-    memory_aspects =memory["aspects"].items()
+    description = matching_item["Label"]
+    item_aspects = matching_item["aspects"].items()
 
-    aspects = filter_non_aspect_items(memory_aspects)
-    rendered_items = get_sprite_items(memory_aspects)
-    
+    rendered_items = get_sprite_items(item_aspects)
+
+    # This is just to check that our blacklist covers all expected scenarios
+    aspects = filter_non_aspect_items(item_aspects)
     if Counter(aspects) != Counter(rendered_items):
-        raise Exception(f"Some elements won't be rendered in the game for memory {memory_id}! Rendered items: {rendered_items}, All items {aspects}")
-    
-    aspects_strings = [ASPECT_TEMPLATE.format(aspect=aspect, aspect_power=value) for (aspect,value) in aspects]
+        raise Exception(f"Some elements won't be rendered in the game for item {item_id}!
+                        Rendered items: {rendered_items}, All items {aspects}")
 
+    aspects_strings = [ASPECT_TEMPLATE.format(
+        aspect=aspect, aspect_power=value) for (aspect, value) in rendered_items]
+    return (description, aspects_strings)
+
+
+def format_item_description(memory_id):
+    READING_STRING_TEMPLATE = "<i>[Upon reading gives <b>{memory}]</b> ({memory_aspects})</i>"
+    description, aspects_strings = format_item_description(memory_id)
     return READING_STRING_TEMPLATE.format(memory=description, memory_aspects=", ".join(aspects_strings))
 
 
@@ -55,11 +62,12 @@ def format_lesson_description(lesson_id, xtrigger_aspect):
 def interpret_xtriggers_in_tomejson(xtriggers):
     description_string = []
     for xtrigger_aspect, read_results in xtriggers.items():
-        mastering_pattern = re.match(MASTERING_XTRIGGER_PATTERN, xtrigger_aspect)
+        mastering_pattern = re.match(
+            MASTERING_XTRIGGER_PATTERN, xtrigger_aspect)
         if re.match(READING_XTRIGGER_PATTERN, xtrigger_aspect):
             for item in read_results:
                 description_string.insert(
-                    0, format_memory_description(item["id"]))
+                    0, format_item_description(item["id"]))
         elif mastering_pattern:
             for item in read_results:
                 description_string.append(
@@ -68,7 +76,7 @@ def interpret_xtriggers_in_tomejson(xtriggers):
     # Creates the description
     if description_string:
         connector = ", " + FILLER
-        return FILLER*2 + connector.join(description_string)
+        return FILLER * 2 + connector.join(description_string)
     else:
         raise Exception(
             f"Couldn't find a matching reading pattern {xtriggers}")
@@ -97,12 +105,12 @@ def format_tech_tree_entry(skill_id):
                 soul_fragment = SOULFRAGMENT_LOOKUP.lookup_id(
                     soul_fragment_match.group(1), 1)[0]["label"]
         rewards.append([soul_fragment, no_longer_commitable_path])
-    
+
     # the commit action makes the unused path unusable
     rewards[0][0], rewards[1][0] = rewards[1][0], rewards[0][0]
 
     return TECH_TREETEMPLATE.format(rewards=" or ".join([REWARDS_TEMPLATE.format(
-            soul_fragment=soul_fragment, tech_tree_path=tech_tree_path) for soul_fragment, tech_tree_path in rewards]))
+        soul_fragment=soul_fragment, tech_tree_path=tech_tree_path) for soul_fragment, tech_tree_path in rewards]))
 
 
 def format_recipes(skill_id):
@@ -120,7 +128,7 @@ def format_recipes(skill_id):
         recipe_items = get_sprite_items(recipe_items)
 
         aspect_string = ", ".join([ASPECT_TEMPLATE.format(aspect=attribute, aspect_power=value) for attribute, value in recipe_items
-                         if re.match(REMOVE_BOOST_ABILITIES_PATTERN, attribute) == None])
+                                   if re.match(REMOVE_BOOST_ABILITIES_PATTERN, attribute) == None])
 
         additional_items = set(aspects) - set(get_sprite_items(recipe_items))
         additional_item_string = ""
@@ -129,13 +137,15 @@ def format_recipes(skill_id):
             for (k, _) in additional_items:
                 # Try and lookup aspect label
                 try:
-                    additional_items_for_recipe_names.append(ASPECTS_LOOKUP.lookup_id(k, 1)[0]["Label"])
+                    additional_items_for_recipe_names.append(
+                        ASPECTS_LOOKUP.lookup_id(k, 1)[0]["Label"])
                 except:
                     additional_items_for_recipe_names.append(k)
-            additional_item_string = ADDITIONAL_ITEM_TEMPLATE.format(additional_items = ", ".join(additional_items_for_recipe_names))
+            additional_item_string = ADDITIONAL_ITEM_TEMPLATE.format(
+                additional_items=", ".join(additional_items_for_recipe_names))
 
         description_lines.append(RECIPE_LINE_TEMPLATE.format(
-            recipe=recipe_name, aspects=aspect_string, additional_item_string = additional_item_string ))
+            recipe=recipe_name, aspects=aspect_string, additional_item_string=additional_item_string))
     if description_lines:
         return RECIPES_STRING_TEMPLATE + FILLER.join(description_lines)
     else:
@@ -146,13 +156,13 @@ def generate_patched_skills_file():
     for skill in skills_json["elements"]:
         reading_description = format_tech_tree_entry(
             skill["id"])
-        
+
         recipe_description = format_recipes(skill["id"])
 
         if recipe_description:
-            skill["Desc"] += FILLER*2 + recipe_description
+            skill["Desc"] += FILLER * 2 + recipe_description
 
-        skill["Desc"] += FILLER*2 + reading_description
+        skill["Desc"] += FILLER * 2 + reading_description
 
     f = open(SAVED_SKILLS_FILE, "w")
     f.write(json.dumps(skills_json))
@@ -170,6 +180,6 @@ def generate_patched_tomes_file():
     f.close()
 
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     generate_patched_skills_file()
     generate_patched_tomes_file()

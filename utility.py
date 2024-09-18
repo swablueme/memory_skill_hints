@@ -2,11 +2,13 @@ from constants import *
 import json
 import re
 
+
 def load_json(file):
     path = BOH_PATH + file
     with open(path, "r", encoding="utf-8", errors="ignore") as f:
         file_read = f.read()
         return json.loads(file_read)
+
 
 class JsonLookup:
     def __init__(self, root_key, *elements):
@@ -65,6 +67,6 @@ ASPECTS_LOOKUP = JsonLookup(
 SKILLS_LOOKUP = JsonLookup("elements", LOCATION_OF_SKILLS_JSON)
 LESSONS_LOOKUP = JsonLookup("elements", *LOCATION_OF_LESSONS_JSON)
 TECH_TREE_LOOKUP = JsonLookup(
-    "recipes",  LOCATION_OF_WISDOM_COMMITMENTS_JSON)
+    "recipes", LOCATION_OF_WISDOM_COMMITMENTS_JSON)
 RECIPES_LOOKUP = JsonLookup("recipes", *LOCATION_OF_RECIPES)
 SOULFRAGMENT_LOOKUP = JsonLookup("elements", LOCATION_OF_ABILITY_JSON)

@@ -34,4 +34,3 @@ FILLER = "\r\n"
 ASPECT_TEMPLATE = "<sprite name={aspect}> {aspect_power}"
 # Path to your game files
 BOH_PATH = "D:\\games\\BOOK OF HOURS\\bh_Data\\StreamingAssets\\bhcontent\\core\\"
-
