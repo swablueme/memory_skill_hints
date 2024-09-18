@@ -21,28 +21,46 @@ def get_sprite_items(aspect_dict):
     return [(attribute, value) for attribute, value in aspect_dict if re.match(ASPECTS_PATTERN, attribute)]
 
 
-def format_item_description(item_id):
-    matching_item = ASPECTS_LOOKUP.lookup_id(item_id, 1)[0]
+def format_item_description(descriptionlabel, aspects_label, item=None):
+    if type(item) == str:
+        matching_item = ASPECTS_LOOKUP.lookup_id(item, 1)[0]
+    else:
+        matching_item = item
+    description = matching_item[descriptionlabel]
+    item_aspects = matching_item[aspects_label].items()
 
-    description = matching_item["Label"]
-    item_aspects = matching_item["aspects"].items()
-
+    aspects = filter_non_aspect_items(item_aspects)
     rendered_items = get_sprite_items(item_aspects)
 
-    # This is just to check that our blacklist covers all expected scenarios
-    aspects = filter_non_aspect_items(item_aspects)
-    if Counter(aspects) != Counter(rendered_items):
-        raise Exception(f"Some elements won't be rendered in the game for item {item_id}!
-                        Rendered items: {rendered_items}, All items {aspects}")
+    # eg stuff like lens
+    non_aspect_additional_items = set(
+        aspects) - set(get_sprite_items(rendered_items))
 
+    additional_aspects_for_recipes = []
+    if non_aspect_additional_items:
+        for (k, _) in non_aspect_additional_items:
+            # Try and lookup aspect label
+            try:
+                additional_aspects_for_recipes.append(
+                    ASPECTS_LOOKUP.lookup_id(k, 1)[0]["Label"])
+            except:
+                additional_aspects_for_recipes.append(k)
     aspects_strings = [ASPECT_TEMPLATE.format(
         aspect=aspect, aspect_power=value) for (aspect, value) in rendered_items]
-    return (description, aspects_strings)
+    return (description, aspects_strings, additional_aspects_for_recipes)
 
 
-def format_item_description(memory_id):
+def format_memory_description(memory_id):
     READING_STRING_TEMPLATE = "<i>[Upon reading gives <b>{memory}]</b> ({memory_aspects})</i>"
-    description, aspects_strings = format_item_description(memory_id)
+    description, aspects_strings, additional_aspects_found = format_item_description(
+        "Label", "aspects", memory_id)
+
+    # This is just to check that our blacklist covers all expected scenarios since for memories we don't expect
+    # anything additional
+    if additional_aspects_found:
+        raise Exception(
+            f"Some elements won't be rendered in the game for memory item {memory_id}! Unrendered items: {additional_aspects_found}")
+
     return READING_STRING_TEMPLATE.format(memory=description, memory_aspects=", ".join(aspects_strings))
 
 
@@ -67,7 +85,7 @@ def interpret_xtriggers_in_tomejson(xtriggers):
         if re.match(READING_XTRIGGER_PATTERN, xtrigger_aspect):
             for item in read_results:
                 description_string.insert(
-                    0, format_item_description(item["id"]))
+                    0, format_memory_description(item["id"]))
         elif mastering_pattern:
             for item in read_results:
                 description_string.append(
@@ -116,36 +134,29 @@ def format_tech_tree_entry(skill_id):
 def format_recipes(skill_id):
     recipes = RECIPES_LOOKUP.filter(lambda x: (skill_id in x["reqs"]))
     RECIPES_STRING_TEMPLATE = "<b><i>[Possible recipes]:</b><i>" + FILLER
-    RECIPE_LINE_TEMPLATE = "<i> + [<b>{recipe}]: </b> ({aspects}{additional_item_string})</i>"
+
+    RECIPE_LINE_TEMPLATE = "<i> + [<b>{recipe}({item_aspects})]: </b> ({aspects}{additional_item_string})</i>"
     ADDITIONAL_ITEM_TEMPLATE = " | {additional_items}"
     description_lines = []
     for recipe in recipes:
-        reqs = recipe["reqs"]
-        recipe_name = recipe["Label"]
+        recipe_name, aspect_list, additional_items_for_recipe_names = format_item_description(
+            "Label", "reqs", recipe)
 
-        recipe_items = reqs.items()
-        aspects = filter_non_aspect_items(recipe_items)
-        recipe_items = get_sprite_items(recipe_items)
+        recipe_product = [k for k, v in recipe["effects"].items() if v == -1]
+        if len(recipe_product) != 1:
+            raise Exception(
+                f"Unexpected number of products that wasn't 1!: {recipe_product}")
 
-        aspect_string = ", ".join([ASPECT_TEMPLATE.format(aspect=attribute, aspect_power=value) for attribute, value in recipe_items
-                                   if re.match(REMOVE_BOOST_ABILITIES_PATTERN, attribute) == None])
+        _, aspects_recipe_product, _ = format_item_description(
+            "Label", "aspects", recipe_product[0])
 
-        additional_items = set(aspects) - set(get_sprite_items(recipe_items))
         additional_item_string = ""
-        if additional_items:
-            additional_items_for_recipe_names = []
-            for (k, _) in additional_items:
-                # Try and lookup aspect label
-                try:
-                    additional_items_for_recipe_names.append(
-                        ASPECTS_LOOKUP.lookup_id(k, 1)[0]["Label"])
-                except:
-                    additional_items_for_recipe_names.append(k)
+        if additional_items_for_recipe_names:
             additional_item_string = ADDITIONAL_ITEM_TEMPLATE.format(
                 additional_items=", ".join(additional_items_for_recipe_names))
 
         description_lines.append(RECIPE_LINE_TEMPLATE.format(
-            recipe=recipe_name, aspects=aspect_string, additional_item_string=additional_item_string))
+            recipe=recipe_name, item_aspects=", ".join(aspects_recipe_product), aspects=", ".join(aspect_list), additional_item_string=additional_item_string))
     if description_lines:
         return RECIPES_STRING_TEMPLATE + FILLER.join(description_lines)
     else:
