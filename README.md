@@ -1,6 +1,5 @@
-Some skill and book reminders for Book of Hours...
-![image](https://github.com/user-attachments/assets/d2edd350-8c85-4680-969d-968c31dfb403)
-![image](https://github.com/user-attachments/assets/b5efa990-d422-4b82-b8cc-d510d8c0b6fb)
-
+Some skill and book reminders for the Book of Hours...
+![image](https://github.com/user-attachments/assets/b53cc8ff-6a32-4faa-a5b6-7e9951da091e)
+![image](https://github.com/user-attachments/assets/2d62a639-f790-4c96-a7de-8c4e542d0115)
 
 
