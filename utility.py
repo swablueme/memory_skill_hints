@@ -5,12 +5,16 @@ import re
 
 def load_json(file):
     path = BOH_PATH + file
-    for encode in ["utf-8", "utf-16le"]:
+
+    # JSON files in Book of Hours are in a variety of encodes - also make sure to run the json through a validator if it fails to load
+    for encode in ["utf-8", "utf-16", "utf-16le"]:
         try:
             with open(path, "r", encoding=encode) as f:
-                return json.loads(f.read())
+                json_loaded = json.loads(f.read())
+                print(f"{path} loading succeded for encoding: {encode}")
+                return json_loaded
         except:
-            print(path, "loading failed for encoding", encode)
+            print(f"{path} loading failed for encoding: {encode}")
 
 
 class JsonLookup:

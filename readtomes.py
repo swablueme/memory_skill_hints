@@ -13,6 +13,8 @@ tomes_json = load_json(LOCATION_OF_TOMES_JSON)
 skills_json = load_json(LOCATION_OF_SKILLS_JSON)
 aspecteditems_json = load_json(LOCATION_OF_READING_ASPECTS_JSON)
 
+load_json("elements\DLC_HOL_instituteaspects_foe.json")
+
 
 def filter_non_aspect_items(aspect_dict) -> list:
     return [(attribute, value) for attribute, value in aspect_dict if re.match(REMOVE_NON_ASPECTS_PATTERN, attribute) == None]
