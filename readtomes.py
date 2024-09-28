@@ -226,15 +226,18 @@ def generate_patched_aspecteditems_file():
     for cooked_item in cooking:
         format_cooking_recipes(cooked_item, item_modification)
 
-    number_items_updated = 0
+    number_items_updated = set()
     for item in aspecteditems_json["elements"]:
         if item["ID"] in item_modification:
             recipe = str(item_modification[item["ID"]])
             item["Desc"] += FILLER * 2 + recipe
-            number_items_updated += 1
+            number_items_updated.add(item["ID"])
 
-    # should update the same number of items as there are to be updated - are they all in the aspect items file?
-    assert number_items_updated == len(item_modification)
+    if len(number_items_updated) != len(item_modification):
+        missing_items = set(item_modification.keys()) - number_items_updated
+        raise Exception(
+            f"Some ingredients {missing_items} which are used in recipes are not present in {LOCATION_OF_READING_ASPECTS_JSON} so their description have not been modified!")
+
     save_file(SAVED_ASPECT_ITEMS_FILE, aspecteditems_json)
 
 
