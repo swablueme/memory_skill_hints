@@ -18,7 +18,7 @@ def filter_non_aspect_items(aspect_dict) -> list:
     return [(attribute, value) for attribute, value in aspect_dict if re.match(REMOVE_NON_ASPECTS_PATTERN, attribute) == None]
 
 
-def get_sprite_items(aspect_dict):
+def get_sprite_items(aspect_dict) -> list:
     return [(attribute, value) for attribute, value in aspect_dict if re.match(ASPECTS_PATTERN, attribute)]
 
 
