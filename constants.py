@@ -20,19 +20,23 @@ TECH_TREE_PATH_NAME_PATTERN = r"^w\.(.*)$"
 TECH_TREE_SOUL_FRAGMENT_PATTERN = r"^a\.(.*)$"
 
 ID_PATTERN_GROUP = "id_pattern"
-# eg commit.hus.s.thegreatsignsandthegreatscars
+# eg commit.hus.s.thegreatsignsandthegreatscars is an example of a skill
 WISDOM_PATTERN = fr"^commit\.[A-Za-z]+\.(?P<{ID_PATTERN_GROUP}>.*)$"
 
-# All the memory attributes are included including boost and sound, so we do not want these
-REMOVE_BOOST_ABILITIES_PATTERN = r"^(boost\..*|sound|ability|s\..*|e\..*|omen)$"
+# All the memory attributes are included including boost and sound, so we do not want these - this is largely a sanity check to make sure
+# that the dev hasn't added new aspects that are required to be shown and also when crafting, to capture requirements eg lens
+REMOVE_NON_ASPECTS_PATTERN = r"^(boost\..*|sound|ability|s\..*|e\..*|omen)$"
 ASPECTS_PATTERN = r"(edge|forge|grail|heart|knock|lantern|moon|moth|nectar|rose|scale|sky|winter)"
-COOKING_INGREDIENTS = r"^(?!ingredient$).*$"
+
+# some recipes have a generic 'ingredient' requirement - this pattern removes that
+COOKING_INGREDIENTS_PATTERN = r"^(?!ingredient$).*$"
 
 # This is the name of the json file that we create
 SAVED_TOMES_FILE = r"tomes_json_patched.json"
 SAVED_SKILLS_FILE = r"skills_json_patched.json"
 SAVED_CORRESPONDENCE_FILE = r"correspondence_elements_json_patched.json"
 SAVED_ASPECT_ITEMS_FILE = r"aspecteditems_json_patched.json"
+
 # These are various string templates to match what we want
 FILLER = "\r\n"
 ASPECT_TEMPLATE = "<sprite name={aspect}> {aspect_power}"

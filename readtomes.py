@@ -14,8 +14,8 @@ skills_json = load_json(LOCATION_OF_SKILLS_JSON)
 aspecteditems_json = load_json(LOCATION_OF_READING_ASPECTS_JSON)
 
 
-def filter_non_aspect_items(aspect_dict):
-    return [(attribute, value) for attribute, value in aspect_dict if re.match(REMOVE_BOOST_ABILITIES_PATTERN, attribute) == None]
+def filter_non_aspect_items(aspect_dict) -> list:
+    return [(attribute, value) for attribute, value in aspect_dict if re.match(REMOVE_NON_ASPECTS_PATTERN, attribute) == None]
 
 
 def get_sprite_items(aspect_dict):
@@ -33,22 +33,23 @@ def format_item_description(descriptionlabel, aspects_label, item=None):
     aspects = filter_non_aspect_items(item_aspects)
     rendered_items = get_sprite_items(item_aspects)
 
-    # eg stuff like lens
-    non_aspect_additional_items = set(
+    # eg stuff like lens might fall into these items
+    required_items_that_arent_aspects = set(
         aspects) - set(get_sprite_items(rendered_items))
 
-    additional_aspects_for_recipes = []
-    if non_aspect_additional_items:
-        for (k, _) in non_aspect_additional_items:
-            # Try and lookup aspect label
+    additional_recipe_items_required = []
+    if required_items_that_arent_aspects:
+        for (k, _) in required_items_that_arent_aspects:
+            # Try and lookup item label, eg Mazarine Fife
             try:
-                additional_aspects_for_recipes.append(
+                additional_recipe_items_required.append(
                     ASPECTS_LOOKUP.lookup_id(k, 1)[0]["Label"])
+            # Sometimes generic requirements apply, like lens
             except:
-                additional_aspects_for_recipes.append(k)
-    aspects_strings = [ASPECT_TEMPLATE.format(
+                additional_recipe_items_required.append(k)
+    list_of_templated_aspects = [ASPECT_TEMPLATE.format(
         aspect=aspect, aspect_power=value) for (aspect, value) in rendered_items]
-    return (description, aspects_strings, additional_aspects_for_recipes)
+    return (description, list_of_templated_aspects, additional_recipe_items_required)
 
 
 def format_memory_description(memory_id):
@@ -70,6 +71,8 @@ def format_lesson_description(lesson_id, xtrigger_aspect):
     # @#mastery.edge|TEXT_TO_APPEAR_ONLY_AFTER_MASTERING@
     # and if you need it to appear if without it
     # @#mastery.edge|#|TEXT_TO_APPEAR_IF_NOT_MASTERED@
+
+    # Please see https://docs.google.com/document/d/1BZiUrSiT8kKvWIEvx5DObThL4HMGVI1CluJR20CWBU0 for more details
 
     MASTERY_STRING_TEMPLATE = "@#mastery.{xtrigger_aspect}|#|<i>[First mastery gives <b>{lesson} ({aspects})]</b>@"
     matching_lessons = LESSONS_LOOKUP.lookup_id(lesson_id, 1)
@@ -161,7 +164,7 @@ def format_cooking_recipes(cooked_item, item_modification):
     # this is what's displayed in the recipe eg egg it doesn't matter what egg
     recipe_ingredients_generic = []
     for ingredient_name in cooked_item["reqs"]:
-        if re.match(COOKING_INGREDIENTS, ingredient_name) != None:
+        if re.match(COOKING_INGREDIENTS_PATTERN, ingredient_name) != None:
             try:
                 # in the event that it's an aspected item
                 item = ASPECTS_LOOKUP.lookup_id(ingredient_name, 1)[0]

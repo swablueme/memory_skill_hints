@@ -5,10 +5,12 @@ import re
 
 def load_json(file):
     path = BOH_PATH + file
-    with open(path, "r", encoding="utf-8", errors="ignore") as f:
-        print("Loading", path)
-        file_read = f.read()
-        return json.loads(file_read)
+    for encode in ["utf-8", "utf-16le"]:
+        try:
+            with open(path, "r", encoding=encode) as f:
+                return json.loads(f.read())
+        except:
+            print(path, "loading failed for encoding", encode)
 
 
 class JsonLookup:
