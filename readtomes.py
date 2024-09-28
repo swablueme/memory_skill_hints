@@ -11,6 +11,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 # These files are edited
 tomes_json = load_json(LOCATION_OF_TOMES_JSON)
 skills_json = load_json(LOCATION_OF_SKILLS_JSON)
+aspecteditems_json = load_json(LOCATION_OF_READING_ASPECTS_JSON)
 
 
 def filter_non_aspect_items(aspect_dict):
@@ -70,11 +71,12 @@ def format_lesson_description(lesson_id, xtrigger_aspect):
     # and if you need it to appear if without it
     # @#mastery.edge|#|TEXT_TO_APPEAR_IF_NOT_MASTERED@
 
-    MASTERY_STRING_TEMPLATE = "@#mastery.{xtrigger_aspect}|#|<i>[First mastery gives <b>{lesson}]</b>@"
+    MASTERY_STRING_TEMPLATE = "@#mastery.{xtrigger_aspect}|#|<i>[First mastery gives <b>{lesson} ({aspects})]</b>@"
     matching_lessons = LESSONS_LOOKUP.lookup_id(lesson_id, 1)
 
-    description = matching_lessons[0]["Label"]
-    return MASTERY_STRING_TEMPLATE.format(lesson=description, xtrigger_aspect=xtrigger_aspect)
+    description, aspects_list, _ = format_item_description(
+        "Label", "aspects", matching_lessons[0])
+    return MASTERY_STRING_TEMPLATE.format(lesson=description, xtrigger_aspect=xtrigger_aspect, aspects=", ".join(aspects_list))
 
 
 def interpret_xtriggers_in_tomejson(xtriggers):
@@ -131,13 +133,9 @@ def format_tech_tree_entry(skill_id):
         soul_fragment=soul_fragment, tech_tree_path=tech_tree_path) for soul_fragment, tech_tree_path in rewards]))
 
 
-def format_recipes(skill_id):
-    recipes = RECIPES_LOOKUP.filter(lambda x: (skill_id in x["reqs"]))
-    RECIPES_STRING_TEMPLATE = "<b><i>[Possible recipes]:</b><i>" + FILLER
-
-    RECIPE_LINE_TEMPLATE = "<i> + [<b>{recipe} ({item_aspects}) ] - </b> {aspects}{additional_item_string}</i>"
-    ADDITIONAL_ITEM_TEMPLATE = ", {additional_items}"
-    description_lines = []
+def format_crafting_recipes(skill_id):
+    recipes = CRAFTING_RECIPES_LOOKUP.filter(lambda x: (skill_id in x["reqs"]))
+    complete_recipe = Recipe()
     for recipe in recipes:
         recipe_name, aspect_list, additional_items_for_recipe_names = format_item_description(
             "Label", "reqs", recipe)
@@ -147,20 +145,51 @@ def format_recipes(skill_id):
             raise Exception(
                 f"Unexpected number of products that wasn't 1!: {recipe_product}")
 
-        _, aspects_recipe_product, _ = format_item_description(
+        _, final_recipe_product_aspects, _ = format_item_description(
             "Label", "aspects", recipe_product[0])
 
-        additional_item_string = ""
-        if additional_items_for_recipe_names:
-            additional_item_string = ADDITIONAL_ITEM_TEMPLATE.format(
-                additional_items=", ".join(additional_items_for_recipe_names))
+        complete_recipe.add_recipe_line(
+            recipe_name, final_recipe_product_aspects, aspect_list, additional_items_for_recipe_names)
 
-        description_lines.append(RECIPE_LINE_TEMPLATE.format(
-            recipe=recipe_name, item_aspects=", ".join(aspects_recipe_product), aspects=", ".join(aspect_list), additional_item_string=additional_item_string))
-    if description_lines:
-        return RECIPES_STRING_TEMPLATE + FILLER.join(description_lines)
-    else:
-        return ""
+    return str(complete_recipe)
+
+
+def format_cooking_recipes(cooked_item, item_modification):
+    # what ingredients need the recipe card added to them
+    recipe_ingredients_to_modify = []
+
+    # this is what's displayed in the recipe eg egg it doesn't matter what egg
+    recipe_ingredients_generic = []
+    for ingredient_name in cooked_item["reqs"]:
+        if re.match(COOKING_INGREDIENTS, ingredient_name) != None:
+            try:
+                # in the event that it's an aspected item
+                item = ASPECTS_LOOKUP.lookup_id(ingredient_name, 1)[0]
+                item_modification.setdefault(ingredient_name, Recipe())
+                recipe_ingredients_to_modify.append(ingredient_name)
+                recipe_ingredients_generic.append(item["Label"])
+
+            except:
+                item_ids_with_aspects = [x["ID"] for x in ASPECTS_LOOKUP.filter(
+                    lambda x: ingredient_name in x["aspects"])]
+                recipe_ingredients_to_modify.extend(item_ids_with_aspects)
+                [item_modification.setdefault(
+                    ingredient, Recipe()) for ingredient in item_ids_with_aspects]
+                recipe_ingredients_generic.append(ingredient_name)
+
+    for cooked_product_id in cooked_item["effects"].keys():
+        recipe_name, aspects_list, _ = format_item_description(
+            "Label", "aspects", cooked_product_id)
+        for item in recipe_ingredients_to_modify:
+            item_modification[item].add_recipe_line(
+                recipe_name, aspects_list, recipe_ingredients_generic, [])
+    return item_modification
+
+
+def save_file(filename, json_value):
+    f = open(filename, "w")
+    f.write(json.dumps(json_value))
+    f.close()
 
 
 def generate_patched_skills_file():
@@ -168,16 +197,14 @@ def generate_patched_skills_file():
         reading_description = format_tech_tree_entry(
             skill["id"])
 
-        recipe_description = format_recipes(skill["id"])
+        recipe_description = format_crafting_recipes(skill["id"])
 
         if recipe_description:
             skill["Desc"] += FILLER * 2 + recipe_description
 
         skill["Desc"] += FILLER * 2 + reading_description
 
-    f = open(SAVED_SKILLS_FILE, "w")
-    f.write(json.dumps(skills_json))
-    f.close()
+    save_file(SAVED_SKILLS_FILE, skills_json)
 
 
 def generate_patched_tomes_file():
@@ -185,12 +212,30 @@ def generate_patched_tomes_file():
         reading_description = interpret_xtriggers_in_tomejson(
             book["xtriggers"])
         book["Desc"] += reading_description
+    save_file(SAVED_TOMES_FILE, tomes_json)
 
-    f = open(SAVED_TOMES_FILE, "w")
-    f.write(json.dumps(tomes_json))
-    f.close()
+
+def generate_patched_aspecteditems_file():
+    cooking = COOKING_RECIPES_LOOKUP.filter(
+        lambda x: x["id"].startswith('cook.'))
+
+    item_modification = {}
+    for cooked_item in cooking:
+        format_cooking_recipes(cooked_item, item_modification)
+
+    number_items_updated = 0
+    for item in aspecteditems_json["elements"]:
+        if item["ID"] in item_modification:
+            recipe = str(item_modification[item["ID"]])
+            item["Desc"] += FILLER * 2 + recipe
+            number_items_updated += 1
+
+    # should update the same number of items as there are to be updated - are they all in the aspect items file?
+    assert number_items_updated == len(item_modification)
+    save_file(SAVED_ASPECT_ITEMS_FILE, aspecteditems_json)
 
 
 if __name__ == "__main__":
     generate_patched_skills_file()
     generate_patched_tomes_file()
+    generate_patched_aspecteditems_file()

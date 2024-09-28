@@ -6,6 +6,7 @@ import re
 def load_json(file):
     path = BOH_PATH + file
     with open(path, "r", encoding="utf-8", errors="ignore") as f:
+        print("Loading", path)
         file_read = f.read()
         return json.loads(file_read)
 
@@ -62,11 +63,46 @@ class JsonLookup:
         return list(filter(filter_lambda, self._get_all_dicts()))
 
 
+class Recipe:
+    RECIPES_STRING_TEMPLATE = "<b><i>[Possible recipes]:</b><i>" + FILLER
+    RECIPE_LINE_TEMPLATE = "<i> + [<b>{recipe_name} ({recipe_item_aspects}) ] - </b> {aspects_needed_to_craft}{additional_item_string}</i>"
+    ADDITIONAL_ITEM_TEMPLATE = ", {additional_items}"
+
+    def __init__(self):
+        self.description_lines = []
+
+    def add_recipe_line(self, recipe_name, recipe_item_aspects, aspects_needed_to_craft, additional_item):
+        self.description_lines.append({"recipe_name": recipe_name,
+                                       "recipe_item_aspects": recipe_item_aspects,
+                                       "aspects_needed_to_craft": aspects_needed_to_craft,
+                                       "additional_item": additional_item})
+        return self.description_lines
+
+    def __str__(self):
+        string_representation = []
+        for line in self.description_lines:
+            additional_item_string = Recipe.ADDITIONAL_ITEM_TEMPLATE.format(additional_items=", ".join(
+                line["additional_item"])) if line["additional_item"] else ""
+
+            string_representation.append(Recipe.RECIPE_LINE_TEMPLATE.format(
+                recipe_name=line["recipe_name"],
+                recipe_item_aspects=", ".join(line["recipe_item_aspects"]),
+                aspects_needed_to_craft=", ".join(
+                    line["aspects_needed_to_craft"]),
+                additional_item_string=additional_item_string))
+
+        if string_representation:
+            return Recipe.RECIPES_STRING_TEMPLATE + FILLER.join(string_representation)
+        else:
+            return ""
+
+
 ASPECTS_LOOKUP = JsonLookup(
     "elements", LOCATION_OF_READING_ASPECTS_JSON)
 SKILLS_LOOKUP = JsonLookup("elements", LOCATION_OF_SKILLS_JSON)
 LESSONS_LOOKUP = JsonLookup("elements", *LOCATION_OF_LESSONS_JSON)
 TECH_TREE_LOOKUP = JsonLookup(
     "recipes", LOCATION_OF_WISDOM_COMMITMENTS_JSON)
-RECIPES_LOOKUP = JsonLookup("recipes", *LOCATION_OF_RECIPES)
+CRAFTING_RECIPES_LOOKUP = JsonLookup("recipes", *LOCATION_OF_CRAFTING_RECIPES)
+COOKING_RECIPES_LOOKUP = JsonLookup("recipes", LOCATION_OF_COOKING_RECIPES)
 SOULFRAGMENT_LOOKUP = JsonLookup("elements", LOCATION_OF_ABILITY_JSON)

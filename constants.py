@@ -7,7 +7,9 @@ LOCATION_OF_ABILITY_JSON = r"elements\abilities.json"
 LOCATION_OF_READING_ASPECTS_JSON = r"elements\aspecteditems.json"
 LOCATION_OF_WISDOM_COMMITMENTS_JSON = r"recipes\wisdom_commitments.json"
 LOCATION_OF_SKILLS_JSON = r"elements\skills.json"
-LOCATION_OF_RECIPES = r"recipes\crafting_2_keeper.json", r"recipes\crafting_3_scholar.json", r"recipes\crafting_4b_prentice.json"
+LOCATION_OF_CRAFTING_RECIPES = r"recipes\crafting_2_keeper.json", r"recipes\crafting_3_scholar.json", r"recipes\crafting_4b_prentice.json"
+LOCATION_OF_COOKING_RECIPES = r"recipes\DLC_HOL_cooking.json"
+LOCATION_OF_WRITING_CASE_RECIPES = r"recipes\DLC_HOL_manuscripting_write.json"
 
 # In the xtrigger section of the json, it always starts with stuff like reading.edge or mastering.edge etc
 # Can use regex to recognise these patterns
@@ -24,11 +26,13 @@ WISDOM_PATTERN = fr"^commit\.[A-Za-z]+\.(?P<{ID_PATTERN_GROUP}>.*)$"
 # All the memory attributes are included including boost and sound, so we do not want these
 REMOVE_BOOST_ABILITIES_PATTERN = r"^(boost\..*|sound|ability|s\..*|e\..*|omen)$"
 ASPECTS_PATTERN = r"(edge|forge|grail|heart|knock|lantern|moon|moth|nectar|rose|scale|sky|winter)"
+COOKING_INGREDIENTS = r"^(?!ingredient$).*$"
 
 # This is the name of the json file that we create
 SAVED_TOMES_FILE = r"tomes_json_patched.json"
 SAVED_SKILLS_FILE = r"skills_json_patched.json"
-
+SAVED_CORRESPONDENCE_FILE = r"correspondence_elements_json_patched.json"
+SAVED_ASPECT_ITEMS_FILE = r"aspecteditems_json_patched.json"
 # These are various string templates to match what we want
 FILLER = "\r\n"
 ASPECT_TEMPLATE = "<sprite name={aspect}> {aspect_power}"
