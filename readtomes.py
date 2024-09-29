@@ -288,14 +288,14 @@ def generate_patched_correspondence_summoning():
 
 def generated_patched_order_form():
     order_company = ["trn", "ch"]
-    book = ["wc"]
-    for patched_desc_section in order_company + book:
+    writing_case = ["wc"]
+    for patched_desc_section in order_company + writing_case:
         patched_text = ""
         id_value = ""
         if patched_desc_section in order_company:
             patched_text = generate_patched_catalogue(patched_desc_section)
             id_value = f"form.order.{patched_desc_section}"
-        elif patched_desc_section in book:
+        elif patched_desc_section in writing_case:
             patched_text = generate_patched_correspondence_summoning()
             id_value = patched_desc_section
         for item in orderingform_json["elements"]:
