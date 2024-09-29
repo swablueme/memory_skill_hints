@@ -13,6 +13,7 @@ LOCATION_OF_COOKING_RECIPES = r"recipes\DLC_HOL_cooking.json"
 LOCATION_OF_WRITING_CASE_RECIPES = r"recipes\DLC_HOL_manuscripting_write.json"
 LOCATION_OF_ORDERING_DESCRIPTION_JSON = r"elements\correspondence_elements.json"
 LOCATION_OF_ORDERING_DETAILS_JSON = r"elements\_order_aspects.json", r"recipes\correspondence_ordering.json"
+LOCATION_OF_SUMMONINGVISITOR_REQUIREMENTS_JSON = r"recipes\DLC_HOL_correspondence_summoning.json"
 
 # In the xtrigger section of the json, it always starts with stuff like reading.edge or mastering.edge etc
 # Can use regex to recognise these patterns
@@ -28,7 +29,7 @@ WISDOM_PATTERN = fr"^commit\.[A-Za-z]+\.(?P<{ID_PATTERN_GROUP}>.*)$"
 
 # All the memory attributes are included including boost and sound, so we do not want these - this is largely a sanity check to make sure
 # that the dev hasn't added new aspects that are required to be shown and also when crafting, to capture requirements eg lens
-REMOVE_NON_ASPECTS_PATTERN = r"^(boost\..*|sound|ability|s\..*|e\..*|omen)$"
+REMOVE_NON_ASPECTS_PATTERN = r"^(boost\..*|sound|ability|s\..*|e\..*|omen|address\..*)$"
 ASPECTS_PATTERN = r"(edge|forge|grail|heart|knock|lantern|moon|moth|nectar|rose|scale|sky|winter)"
 
 # some recipes have a generic 'ingredient' requirement - this pattern removes that

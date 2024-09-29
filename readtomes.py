@@ -153,7 +153,10 @@ def format_crafting_recipes(skill_id):
             "Label", "aspects", recipe_product[0])
 
         complete_recipe.add_recipe_line(
-            recipe_name, final_recipe_product_aspects, aspect_list, additional_items_for_recipe_names)
+            recipe_name=recipe_name,
+            recipe_item_aspects=final_recipe_product_aspects,
+            aspects_needed_to_craft=aspect_list,
+            additional_item=additional_items_for_recipe_names)
 
     return str(complete_recipe)
 
@@ -197,14 +200,10 @@ def format_cooking_recipes(cooked_item, item_modification):
             "Label", "aspects", cooked_product_id)
         for item in recipe_ingredients_to_modify:
             item_modification[item].add_recipe_line(
-                recipe_name, aspects_list, recipe_ingredients_generic, [])
+                recipe_name=recipe_name,
+                recipe_item_aspects=aspects_list,
+                aspects_needed_to_craft=recipe_ingredients_generic)
     return item_modification
-
-
-def save_file(filename, json_value):
-    f = open(filename, "w")
-    f.write(json.dumps(json_value))
-    f.close()
 
 
 def generate_patched_skills_file():
@@ -252,24 +251,67 @@ def generate_patched_aspecteditems_file():
     save_file(SAVED_ASPECT_ITEMS_FILE, aspecteditems_json)
 
 
-def patch_ordering_forms():
-    # , "wc"
-    for order_company in ["trn", "ch"]:
-        order_form_name = f"form.order.{order_company}"
-        items = ORDER_RECIPE_LOOKUP.filter(
-            lambda x: x["id"].startswith(f"write.order.{order_company}"))
+def generate_patched_catalogue(order_company):
+    recipe = Recipe("orders")
 
-        actions_for_receiving_items = ["contains." + mutation["mutate"].split('.', 1)[-1]
-                                       for item in items for mutation in item["mutations"]
-                                       if mutation["mutate"].startswith("orderplaced.")]
+    items = ORDER_RECIPE_LOOKUP.filter(
+        lambda x: x["id"].startswith(f"write.order.{order_company}"))
 
-        items_ordered = ORDER_RECIPE_LOOKUP.filter(
-            lambda x: x["id"] in actions_for_receiving_items)
+    actions_for_receiving_items = ["contains." + mutation["mutate"].split('.', 1)[-1]
+                                   for item in items for mutation in item["mutations"]
+                                   if mutation["mutate"].startswith("orderplaced.")]
 
-    pass
+    items_ordered = ORDER_RECIPE_LOOKUP.filter(
+        lambda x: x["id"] in actions_for_receiving_items)
+    item_ids_orderable = [unwrapped['id'] for item in items_ordered for unwrapped in item['xtriggers']
+                          ["unwrapping"] if unwrapped["id"] != "^"]
+    for item in item_ids_orderable:
+        description, aspects_strings, _ = format_item_description(
+            "Label", "aspects", item)
+        recipe.add_recipe_line(recipe_name=description,
+                               aspects_needed_to_craft=aspects_strings)
+    return str(recipe)
+
+
+def generate_patched_correspondence_summoning():
+    recipe = Recipe("visitors")
+
+    visitor_req = VISITOR_SUMMON_LOOKUP.filter(
+        lambda x: x["id"].startswith("write.summon."))
+    for item in visitor_req:
+        description, aspects, additional_reqs = format_item_description(
+            "label", "reqs", item=item)
+        recipe.add_recipe_line(
+            recipe_name=description, aspects_needed_to_craft=aspects, additional_item=additional_reqs)
+    return str(recipe)
+
+
+def generated_patched_order_form():
+    order_company = ["trn", "ch"]
+    book = ["wc"]
+    for patched_desc_section in order_company + book:
+        patched_text = ""
+        id_value = ""
+        if patched_desc_section in order_company:
+            patched_text = generate_patched_catalogue(patched_desc_section)
+            id_value = f"form.order.{patched_desc_section}"
+        elif patched_desc_section in book:
+            patched_text = generate_patched_correspondence_summoning()
+            id_value = patched_desc_section
+        for item in orderingform_json["elements"]:
+            found_id_key_value = next(
+                v for (k, v) in item.items() if k.lower() == "id")
+
+            if found_id_key_value == id_value:
+                desc_value = next(x for x in item.keys()
+                                  if x.lower() == "desc")
+                item[desc_value] += FILLER * 2 + patched_text
+
+    save_file(SAVED_CORRESPONDENCE_FILE, orderingform_json)
 
 
 if __name__ == "__main__":
+    generated_patched_order_form()
     generate_patched_skills_file()
     generate_patched_tomes_file()
     generate_patched_aspecteditems_file()

@@ -17,6 +17,12 @@ def load_json(file):
             print(f"{path} loading failed for encoding: {encode}")
 
 
+def save_file(filename, json_value):
+    f = open(filename, "w")
+    f.write(json.dumps(json_value))
+    f.close()
+
+
 class JsonLookup:
     def __init__(self, *elements):
         for element in elements:
@@ -71,14 +77,15 @@ class JsonLookup:
 
 
 class Recipe:
-    RECIPES_STRING_TEMPLATE = "<b><i>[Possible recipes]:</b><i>" + FILLER
-    RECIPE_LINE_TEMPLATE = "<i> + [<b>{recipe_name} ({recipe_item_aspects}) ] - </b> {aspects_needed_to_craft}{additional_item_string}</i>"
-    ADDITIONAL_ITEM_TEMPLATE = ", {additional_items}"
+    RECIPES_STRING_TEMPLATE = "<b><i>[Possible {recipe_type}]:</b><i>" + FILLER
+    RECIPE_LINE_TEMPLATE = "<i> + [<b>{recipe_name}{recipe_item_aspects}] - </b> {aspects_needed_to_craft}{punctuation}{additional_item_string}</i>"
+    ADDITIONAL_ITEM_TEMPLATE = "{additional_items}"
 
-    def __init__(self):
+    def __init__(self, recipe_type="recipes"):
+        self.type = recipe_type
         self.description_lines = []
 
-    def add_recipe_line(self, recipe_name, recipe_item_aspects, aspects_needed_to_craft, additional_item):
+    def add_recipe_line(self, recipe_name, aspects_needed_to_craft, recipe_item_aspects=[], additional_item=[]):
         dictionary_to_add = {"recipe_name": recipe_name,
                              "recipe_item_aspects": recipe_item_aspects,
                              "aspects_needed_to_craft": aspects_needed_to_craft,
@@ -89,18 +96,23 @@ class Recipe:
     def __str__(self):
         string_representation = []
         for line in self.description_lines:
-            additional_item_string = Recipe.ADDITIONAL_ITEM_TEMPLATE.format(additional_items=", ".join(
-                line["additional_item"])) if line["additional_item"] else ""
+            punctuation = ""
+            if line["aspects_needed_to_craft"] and line["additional_item"]:
+                punctuation = ", "
+            item_aspect_string = " (" + ", ".join(
+                line["recipe_item_aspects"]) + ") " if line["recipe_item_aspects"] else ""
 
             string_representation.append(Recipe.RECIPE_LINE_TEMPLATE.format(
                 recipe_name=line["recipe_name"],
-                recipe_item_aspects=", ".join(line["recipe_item_aspects"]),
+                recipe_item_aspects=item_aspect_string,
                 aspects_needed_to_craft=", ".join(
                     line["aspects_needed_to_craft"]),
-                additional_item_string=additional_item_string))
+                punctuation=punctuation,
+                additional_item_string=", ".join(
+                    line["additional_item"])))
 
         if string_representation:
-            return Recipe.RECIPES_STRING_TEMPLATE + FILLER.join(string_representation)
+            return Recipe.RECIPES_STRING_TEMPLATE.format(recipe_type=self.type) + FILLER.join(string_representation)
         else:
             return ""
 
@@ -118,3 +130,5 @@ COOKING_RECIPES_LOOKUP = JsonLookup(LOCATION_OF_COOKING_RECIPES)
 SOULFRAGMENT_LOOKUP = JsonLookup(LOCATION_OF_ABILITY_JSON)
 ORDER_DESCRIPTION_LOOKUP = JsonLookup(LOCATION_OF_ORDERING_DESCRIPTION_JSON)
 ORDER_RECIPE_LOOKUP = JsonLookup(*LOCATION_OF_ORDERING_DETAILS_JSON)
+VISITOR_SUMMON_LOOKUP = JsonLookup(
+    LOCATION_OF_SUMMONINGVISITOR_REQUIREMENTS_JSON)
