@@ -12,13 +12,14 @@ sys.stdout.reconfigure(encoding='utf-8')
 tomes_json = load_json(LOCATION_OF_TOMES_JSON)
 skills_json = load_json(LOCATION_OF_SKILLS_JSON)
 aspecteditems_json = load_json(LOCATION_OF_READING_ASPECTS_JSON)
+orderingform_json = load_json(LOCATION_OF_ORDERING_DESCRIPTION_JSON)
 
 
-def filter_non_aspect_items(aspect_dict) -> list:
+def filter_non_aspect_items(aspect_dict: dict) -> list:
     return [(attribute, value) for attribute, value in aspect_dict if re.match(REMOVE_NON_ASPECTS_PATTERN, attribute) == None]
 
 
-def get_sprite_items(aspect_dict) -> list:
+def get_sprite_items(aspect_dict: dict) -> list:
     return [(attribute, value) for attribute, value in aspect_dict if re.match(ASPECTS_PATTERN, attribute)]
 
 
@@ -157,14 +158,25 @@ def format_crafting_recipes(skill_id):
     return str(complete_recipe)
 
 
+def has_aspect(ingredient_name, field):
+    # The prototypes field may also contain aspects of interest
+    prototypes = PROTOTYPES_LOOKUP.lookup_id(field["inherits"])
+    if ingredient_name in field["aspects"] and "ingredient" in field["aspects"]:
+        return True
+    elif len(prototypes) == 1 and "aspects" in prototypes[0] and ("ingredient" in field["aspects"] or "ingredient" in prototypes[0]):
+        return ingredient_name in prototypes[0]["aspects"]
+    return False
+
+
 def format_cooking_recipes(cooked_item, item_modification):
     # what ingredients need the recipe card added to them
     recipe_ingredients_to_modify = []
 
     # this is what's displayed in the recipe eg egg it doesn't matter what egg
     recipe_ingredients_generic = []
-    for ingredient_name in cooked_item["reqs"]:
-        if re.match(COOKING_INGREDIENTS_PATTERN, ingredient_name) != None:
+    for (ingredient_name, value) in cooked_item["reqs"].items():
+        # if the value is negative, then you can't use that ingredient
+        if value >= 1 and re.match(COOKING_INGREDIENTS_PATTERN, ingredient_name) != None:
             try:
                 # in the event that it's an aspected item
                 item = ASPECTS_LOOKUP.lookup_id(ingredient_name, 1)[0]
@@ -174,7 +186,7 @@ def format_cooking_recipes(cooked_item, item_modification):
 
             except:
                 item_ids_with_aspects = [x["ID"] for x in ASPECTS_LOOKUP.filter(
-                    lambda x: ingredient_name in x["aspects"])]
+                    lambda x: has_aspect(ingredient_name, x))]
                 recipe_ingredients_to_modify.extend(item_ids_with_aspects)
                 [item_modification.setdefault(
                     ingredient, Recipe()) for ingredient in item_ids_with_aspects]
@@ -237,8 +249,24 @@ def generate_patched_aspecteditems_file():
         missing_items = set(item_modification.keys()) - number_items_updated
         raise Exception(
             f"Some ingredients {missing_items} which are used in recipes are not present in {LOCATION_OF_READING_ASPECTS_JSON} so their description have not been modified!")
-
     save_file(SAVED_ASPECT_ITEMS_FILE, aspecteditems_json)
+
+
+def patch_ordering_forms():
+    # , "wc"
+    for order_company in ["trn", "ch"]:
+        order_form_name = f"form.order.{order_company}"
+        items = ORDER_RECIPE_LOOKUP.filter(
+            lambda x: x["id"].startswith(f"write.order.{order_company}"))
+
+        actions_for_receiving_items = ["contains." + mutation["mutate"].split('.', 1)[-1]
+                                       for item in items for mutation in item["mutations"]
+                                       if mutation["mutate"].startswith("orderplaced.")]
+
+        items_ordered = ORDER_RECIPE_LOOKUP.filter(
+            lambda x: x["id"] in actions_for_receiving_items)
+
+    pass
 
 
 if __name__ == "__main__":

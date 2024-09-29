@@ -18,11 +18,11 @@ def load_json(file):
 
 
 class JsonLookup:
-    def __init__(self, root_key, *elements):
+    def __init__(self, *elements):
         for element in elements:
-            variable_name = element.split("\\")[-1].replace(".", "_")
-            setattr(self, variable_name, load_json(element))
-        self.root_key = root_key
+            folder_name, json_name = element.split("\\")
+            variable_name = json_name.replace(".", "_")
+            setattr(self, variable_name, (folder_name, load_json(element)))
 
     def _is_id_equal(self, id_in_dict, id_presented, dict_regex_pattern):
         if dict_regex_pattern == None:
@@ -36,16 +36,16 @@ class JsonLookup:
     @staticmethod
     def validate_returned_count(result, element_id, count):
         # We only expect one entry when looking up a memory or lesson etc but two for if committing to the tech tree
-        if len(result) != count:
+        if count != None and len(result) != count:
             raise Exception(
                 f"The number of elements that match {element_id} is {len(result)}, but it is expected that {count} result/s exist")
 
-    def lookup_id_regex_pattern(self, element_id, dict_regex_pattern, count):
+    def lookup_id_regex_pattern(self, element_id, dict_regex_pattern, count=None):
         result = self.lookup_field(element_id, "ID", dict_regex_pattern)
         JsonLookup.validate_returned_count(result, element_id, count)
         return result
 
-    def lookup_id(self, element_id, count):
+    def lookup_id(self, element_id, count=None):
         result = self.lookup_field(element_id, "ID", None)
         JsonLookup.validate_returned_count(result, element_id, count)
         return result
@@ -53,8 +53,9 @@ class JsonLookup:
     def _get_all_dicts(self):
         entrylist = []
         for key in self.__dict__.keys():
-            if key.endswith("_json") and not key.startswith("_"):
-                entrylist.extend(getattr(self, key)[self.root_key])
+            if key.endswith("_json"):
+                root_json_key, json_dict = getattr(self, key)
+                entrylist.extend(json_dict[root_json_key])
         return entrylist
 
     def lookup_field(self, element_id, field_name, dict_regex_pattern):
@@ -78,10 +79,11 @@ class Recipe:
         self.description_lines = []
 
     def add_recipe_line(self, recipe_name, recipe_item_aspects, aspects_needed_to_craft, additional_item):
-        self.description_lines.append({"recipe_name": recipe_name,
-                                       "recipe_item_aspects": recipe_item_aspects,
-                                       "aspects_needed_to_craft": aspects_needed_to_craft,
-                                       "additional_item": additional_item})
+        dictionary_to_add = {"recipe_name": recipe_name,
+                             "recipe_item_aspects": recipe_item_aspects,
+                             "aspects_needed_to_craft": aspects_needed_to_craft,
+                             "additional_item": additional_item}
+        self.description_lines.append(dictionary_to_add)
         return self.description_lines
 
     def __str__(self):
@@ -102,13 +104,17 @@ class Recipe:
         else:
             return ""
 
+    def __repr__(self):
+        return self.__str__()
 
-ASPECTS_LOOKUP = JsonLookup(
-    "elements", LOCATION_OF_READING_ASPECTS_JSON)
-SKILLS_LOOKUP = JsonLookup("elements", LOCATION_OF_SKILLS_JSON)
-LESSONS_LOOKUP = JsonLookup("elements", *LOCATION_OF_LESSONS_JSON)
-TECH_TREE_LOOKUP = JsonLookup(
-    "recipes", LOCATION_OF_WISDOM_COMMITMENTS_JSON)
-CRAFTING_RECIPES_LOOKUP = JsonLookup("recipes", *LOCATION_OF_CRAFTING_RECIPES)
-COOKING_RECIPES_LOOKUP = JsonLookup("recipes", LOCATION_OF_COOKING_RECIPES)
-SOULFRAGMENT_LOOKUP = JsonLookup("elements", LOCATION_OF_ABILITY_JSON)
+
+ASPECTS_LOOKUP = JsonLookup(LOCATION_OF_READING_ASPECTS_JSON)
+PROTOTYPES_LOOKUP = JsonLookup(LOCATION_OF_PROTOTYPES)
+SKILLS_LOOKUP = JsonLookup(LOCATION_OF_SKILLS_JSON)
+LESSONS_LOOKUP = JsonLookup(*LOCATION_OF_LESSONS_JSON)
+TECH_TREE_LOOKUP = JsonLookup(LOCATION_OF_WISDOM_COMMITMENTS_JSON)
+CRAFTING_RECIPES_LOOKUP = JsonLookup(*LOCATION_OF_CRAFTING_RECIPES)
+COOKING_RECIPES_LOOKUP = JsonLookup(LOCATION_OF_COOKING_RECIPES)
+SOULFRAGMENT_LOOKUP = JsonLookup(LOCATION_OF_ABILITY_JSON)
+ORDER_DESCRIPTION_LOOKUP = JsonLookup(LOCATION_OF_ORDERING_DESCRIPTION_JSON)
+ORDER_RECIPE_LOOKUP = JsonLookup(*LOCATION_OF_ORDERING_DETAILS_JSON)

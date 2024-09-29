@@ -5,11 +5,14 @@ LOCATION_OF_TOMES_JSON = r"elements\tomes.json"
 LOCATION_OF_LESSONS_JSON = r"elements\xlessons.json", r"elements\xlessons_unique.json"
 LOCATION_OF_ABILITY_JSON = r"elements\abilities.json"
 LOCATION_OF_READING_ASPECTS_JSON = r"elements\aspecteditems.json"
+LOCATION_OF_PROTOTYPES = r"elements\_prototypes.json"
 LOCATION_OF_WISDOM_COMMITMENTS_JSON = r"recipes\wisdom_commitments.json"
 LOCATION_OF_SKILLS_JSON = r"elements\skills.json"
 LOCATION_OF_CRAFTING_RECIPES = r"recipes\crafting_2_keeper.json", r"recipes\crafting_3_scholar.json", r"recipes\crafting_4b_prentice.json"
 LOCATION_OF_COOKING_RECIPES = r"recipes\DLC_HOL_cooking.json"
 LOCATION_OF_WRITING_CASE_RECIPES = r"recipes\DLC_HOL_manuscripting_write.json"
+LOCATION_OF_ORDERING_DESCRIPTION_JSON = r"elements\correspondence_elements.json"
+LOCATION_OF_ORDERING_DETAILS_JSON = r"elements\_order_aspects.json", r"recipes\correspondence_ordering.json"
 
 # In the xtrigger section of the json, it always starts with stuff like reading.edge or mastering.edge etc
 # Can use regex to recognise these patterns
@@ -40,5 +43,6 @@ SAVED_ASPECT_ITEMS_FILE = r"aspecteditems_json_patched.json"
 # These are various string templates to match what we want
 FILLER = "\r\n"
 ASPECT_TEMPLATE = "<sprite name={aspect}> {aspect_power}"
+
 # Path to your game files
 BOH_PATH = "D:\\games\\BOOK OF HOURS\\bh_Data\\StreamingAssets\\bhcontent\\core\\"
