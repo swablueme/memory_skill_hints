@@ -9,10 +9,10 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 
 # These files are edited
-tomes_json = load_json(LOCATION_OF_TOMES_JSON)
-skills_json = load_json(LOCATION_OF_SKILLS_JSON)
-aspecteditems_json = load_json(LOCATION_OF_READING_ASPECTS_JSON)
-orderingform_json = load_json(LOCATION_OF_ORDERING_DESCRIPTION_JSON)
+tomes_json = LoadedJson(LOCATION_OF_TOMES_JSON)
+skills_json = LoadedJson(LOCATION_OF_SKILLS_JSON)
+aspecteditems_json = LoadedJson(LOCATION_OF_READING_ASPECTS_JSON)
+orderingform_json = LoadedJson(LOCATION_OF_ORDERING_DESCRIPTION_JSON)
 
 
 def filter_non_aspect_items(aspect_dict: dict) -> list:
@@ -163,7 +163,7 @@ def format_crafting_recipes(skill_id):
 
 def has_aspect(ingredient_name, field):
     # The prototypes field may also contain aspects of interest
-    prototypes = PROTOTYPES_LOOKUP.lookup_id(field["inherits"])
+    prototypes = BASE_LOOKUP.lookup_id(field["inherits"])
     if ingredient_name in field["aspects"] and "ingredient" in field["aspects"]:
         return True
     elif len(prototypes) == 1 and "aspects" in prototypes[0] and ("ingredient" in field["aspects"] or "ingredient" in prototypes[0]):
@@ -196,59 +196,17 @@ def format_cooking_recipes(cooked_item, item_modification):
                 recipe_ingredients_generic.append(ingredient_name)
 
     for cooked_product_id in cooked_item["effects"].keys():
-        recipe_name, aspects_list, _ = format_item_description(
+        recipe_name, aspects_list, additional_aspects = format_item_description(
             "Label", "aspects", cooked_product_id)
+        additional_aspects = [BASE_LOOKUP.lookup_id(aspect, 1)[0]["label"]
+                              for aspect in additional_aspects if aspect.startswith("course.")]
+        aspects_list.extend(additional_aspects)
         for item in recipe_ingredients_to_modify:
             item_modification[item].add_recipe_line(
                 recipe_name=recipe_name,
                 recipe_item_aspects=aspects_list,
                 aspects_needed_to_craft=recipe_ingredients_generic)
     return item_modification
-
-
-def generate_patched_skills_file():
-    for skill in skills_json["elements"]:
-        reading_description = format_tech_tree_entry(
-            skill["id"])
-
-        recipe_description = format_crafting_recipes(skill["id"])
-
-        if recipe_description:
-            skill["Desc"] += FILLER * 2 + recipe_description
-
-        skill["Desc"] += FILLER * 2 + reading_description
-
-    save_file(SAVED_SKILLS_FILE, skills_json)
-
-
-def generate_patched_tomes_file():
-    for book in tomes_json["elements"]:
-        reading_description = interpret_xtriggers_in_tomejson(
-            book["xtriggers"])
-        book["Desc"] += reading_description
-    save_file(SAVED_TOMES_FILE, tomes_json)
-
-
-def generate_patched_aspecteditems_file():
-    cooking = COOKING_RECIPES_LOOKUP.filter(
-        lambda x: x["id"].startswith('cook.'))
-
-    item_modification = {}
-    for cooked_item in cooking:
-        format_cooking_recipes(cooked_item, item_modification)
-
-    number_items_updated = set()
-    for item in aspecteditems_json["elements"]:
-        if item["ID"] in item_modification:
-            recipe = str(item_modification[item["ID"]])
-            item["Desc"] += FILLER * 2 + recipe
-            number_items_updated.add(item["ID"])
-
-    if len(number_items_updated) != len(item_modification):
-        missing_items = set(item_modification.keys()) - number_items_updated
-        raise Exception(
-            f"Some ingredients {missing_items} which are used in recipes are not present in {LOCATION_OF_READING_ASPECTS_JSON} so their description have not been modified!")
-    save_file(SAVED_ASPECT_ITEMS_FILE, aspecteditems_json)
 
 
 def generate_patched_catalogue(order_company):
@@ -286,9 +244,58 @@ def generate_patched_correspondence_summoning():
     return str(recipe)
 
 
-def generated_patched_order_form():
+def generate_patched_skills_file():
+    for skill in skills_json.get_json_elements():
+        reading_description = format_tech_tree_entry(
+            skill["id"])
+
+        recipe_description = format_crafting_recipes(skill["id"])
+        if recipe_description:
+            skill["Desc"] += FILLER * 2 + recipe_description
+
+        skill["Desc"] += FILLER * 2 + reading_description
+        skills_json.save_edited_element(skill)
+
+    skills_json.save_file_sparse()
+
+
+def generate_patched_tomes_file():
+    for book in tomes_json.get_json_elements():
+        reading_description = interpret_xtriggers_in_tomejson(
+            book["xtriggers"])
+        book["Desc"] += reading_description
+        tomes_json.save_edited_element(book)
+    tomes_json.save_file_sparse()
+
+
+def generate_patched_aspecteditems_file():
+    cooking = COOKING_RECIPES_LOOKUP.filter(
+        lambda x: x["id"].startswith('cook.'))
+
+    item_modification = {}
+    for cooked_item in cooking:
+        format_cooking_recipes(cooked_item, item_modification)
+
+    number_items_updated = set()
+    for item in aspecteditems_json.get_json_elements():
+        if item["ID"] in item_modification:
+            recipe = str(item_modification[item["ID"]])
+            item["Desc"] += FILLER * 2 + recipe
+            aspecteditems_json.save_edited_element(item)
+            number_items_updated.add(item["ID"])
+
+    if len(number_items_updated) != len(item_modification):
+        missing_items = set(item_modification.keys()) - number_items_updated
+        raise Exception(
+            f"Some ingredients {missing_items} which are used in recipes are not present in {LOCATION_OF_READING_ASPECTS_JSON} so their description have not been modified!")
+
+    aspecteditems_json.save_file_sparse()
+
+
+def generated_patched_order_form_file():
     order_company = ["trn", "ch"]
     writing_case = ["wc"]
+
     for patched_desc_section in order_company + writing_case:
         patched_text = ""
         id_value = ""
@@ -298,20 +305,20 @@ def generated_patched_order_form():
         elif patched_desc_section in writing_case:
             patched_text = generate_patched_correspondence_summoning()
             id_value = patched_desc_section
-        for item in orderingform_json["elements"]:
+        for item in orderingform_json.get_json_elements():
+            # this is necessary because the casing changes for each key, so for example sometimes it's an id field, sometimes it's ID etc
             found_id_key_value = next(
                 v for (k, v) in item.items() if k.lower() == "id")
-
             if found_id_key_value == id_value:
                 desc_value = next(x for x in item.keys()
                                   if x.lower() == "desc")
                 item[desc_value] += FILLER * 2 + patched_text
-
-    save_file(SAVED_CORRESPONDENCE_FILE, orderingform_json)
+                orderingform_json.save_edited_element(item)
+    orderingform_json.save_file_sparse()
 
 
 if __name__ == "__main__":
-    generated_patched_order_form()
+    generated_patched_order_form_file()
     generate_patched_skills_file()
     generate_patched_tomes_file()
     generate_patched_aspecteditems_file()

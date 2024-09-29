@@ -1,34 +1,65 @@
 from constants import *
 import json
 import re
+import functools
 
 
 def load_json(file):
     path = BOH_PATH + file
-
     # JSON files in Book of Hours are in a variety of encodes - also make sure to run the json through a validator if it fails to load
     for encode in ["utf-8", "utf-16", "utf-16le"]:
         try:
             with open(path, "r", encoding=encode) as f:
                 json_loaded = json.loads(f.read())
                 print(f"{path} loading succeded for encoding: {encode}")
-                return json_loaded
+                return json_loaded, encode
         except:
             print(f"{path} loading failed for encoding: {encode}")
 
 
-def save_file(filename, json_value):
-    f = open(filename, "w")
-    f.write(json.dumps(json_value))
-    f.close()
+class LoadedJson:
+    def __init__(self, file):
+        self.encode = ""
+        self.mutated_elements = []
+
+        self.root_json_key_folder_name, self.file_name_patched = file.split(
+            "\\")
+        self.file_name_patched = self.file_name_patched.replace(
+            ".", "_") + "_patched.json"
+
+        self.json_file_dense, self.encode = load_json(file)
+        # we want a sparse json with only the changes
+
+        self.json_file_sparse = load_json(file)[0]
+        self.json_file_sparse[self.root_json_key_folder_name] = self.mutated_elements
+
+    def get_json(self):
+        return self.json_file_dense
+
+    def get_json_elements(self):
+        return self.json_file_dense[self.root_json_key_folder_name]
+
+    def save_edited_element(self, element):
+        self.mutated_elements.append(element)
+
+    def save_file_sparse(self):
+        f = open(self.file_name_patched, "w", encoding=self.encode)
+        f.write(json.dumps(self.json_file_sparse, ensure_ascii=False))
+        f.close()
+
+    def save_file_dense(self):
+        f = open(self.file_name_patched, "w", encoding=self.encode)
+        f.write(json.dumps(self.json_file_dense, ensure_ascii=False))
+        f.close()
 
 
 class JsonLookup:
     def __init__(self, *elements):
         for element in elements:
-            folder_name, json_name = element.split("\\")
+            root_json_key_folder_name, json_name = element.split("\\")
             variable_name = json_name.replace(".", "_")
-            setattr(self, variable_name, (folder_name, load_json(element)))
+            setattr(self, variable_name,
+                    (root_json_key_folder_name, LoadedJson(element).get_json()))
 
     def _is_id_equal(self, id_in_dict, id_presented, dict_regex_pattern):
         if dict_regex_pattern == None:
@@ -64,6 +95,7 @@ class JsonLookup:
                 entrylist.extend(json_dict[root_json_key])
         return entrylist
 
+    @functools.cache
     def lookup_field(self, element_id, field_name, dict_regex_pattern):
         result = []
         for list_of_dict_entries in self._get_all_dicts():
@@ -121,7 +153,7 @@ class Recipe:
 
 
 ASPECTS_LOOKUP = JsonLookup(LOCATION_OF_READING_ASPECTS_JSON)
-PROTOTYPES_LOOKUP = JsonLookup(LOCATION_OF_PROTOTYPES)
+BASE_LOOKUP = JsonLookup(*LOCATION_OF_PROTOTYPES_BASEASPECTS)
 SKILLS_LOOKUP = JsonLookup(LOCATION_OF_SKILLS_JSON)
 LESSONS_LOOKUP = JsonLookup(*LOCATION_OF_LESSONS_JSON)
 TECH_TREE_LOOKUP = JsonLookup(LOCATION_OF_WISDOM_COMMITMENTS_JSON)
