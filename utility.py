@@ -117,7 +117,7 @@ class Recipe:
         self.type = recipe_type
         self.description_lines = []
 
-    def add_recipe_line(self, recipe_name, aspects_needed_to_craft, recipe_item_aspects=[], additional_item=[]):
+    def add_recipe_line(self, recipe_name, aspects_needed_to_craft, recipe_item_aspects="", additional_item=[]):
         dictionary_to_add = {"recipe_name": recipe_name,
                              "recipe_item_aspects": recipe_item_aspects,
                              "aspects_needed_to_craft": aspects_needed_to_craft,
@@ -131,14 +131,13 @@ class Recipe:
             punctuation = ""
             if line["aspects_needed_to_craft"] and line["additional_item"]:
                 punctuation = ", "
-            item_aspect_string = " (" + ", ".join(
-                line["recipe_item_aspects"]) + ") " if line["recipe_item_aspects"] else ""
+            item_aspect_string = " (" + line["recipe_item_aspects"] + \
+                ") " if line["recipe_item_aspects"] else ""
 
             string_representation.append(Recipe.RECIPE_LINE_TEMPLATE.format(
                 recipe_name=line["recipe_name"],
                 recipe_item_aspects=item_aspect_string,
-                aspects_needed_to_craft=", ".join(
-                    line["aspects_needed_to_craft"]),
+                aspects_needed_to_craft=line["aspects_needed_to_craft"],
                 punctuation=punctuation,
                 additional_item_string=", ".join(
                     line["additional_item"])))
@@ -150,6 +149,29 @@ class Recipe:
 
     def __repr__(self):
         return self.__str__()
+
+
+class Aspects:
+    def __init__(self, aspects):
+        self.aspects = aspects
+        self.additional_aspects = []
+
+    def html(self):
+        return ", ".join([ASPECT_TEMPLATE.format(
+            aspect=aspect, aspect_power=value) for (aspect, value) in self.aspects]) + self._str_additional_aspects()
+
+    def _str_additional_aspects(self):
+        if self.additional_aspects:
+            return ", " + ", ".join(self.additional_aspects)
+        else:
+            return ""
+
+    def __str__(self):
+        return ", ".join([aspect + ": " + str(value) for (aspect, value)
+                          in self.aspects]) + self._str_additional_aspects()
+
+    def extend_additional_aspects(self, values):
+        self.additional_aspects.extend(values)
 
 
 ASPECTS_LOOKUP = JsonLookup(LOCATION_OF_READING_ASPECTS_JSON)

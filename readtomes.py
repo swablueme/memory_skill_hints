@@ -48,9 +48,8 @@ def format_item_description(descriptionlabel, aspects_label, item=None):
             # Sometimes generic requirements apply, like lens
             except:
                 additional_recipe_items_required.append(k)
-    list_of_templated_aspects = [ASPECT_TEMPLATE.format(
-        aspect=aspect, aspect_power=value) for (aspect, value) in rendered_items]
-    return (description, list_of_templated_aspects, additional_recipe_items_required)
+
+    return (description, Aspects(rendered_items), additional_recipe_items_required)
 
 
 def format_memory_description(memory_id):
@@ -64,7 +63,7 @@ def format_memory_description(memory_id):
         raise Exception(
             f"Some elements won't be rendered in the game for memory item {memory_id}! Unrendered items: {additional_aspects_found}")
 
-    return READING_STRING_TEMPLATE.format(memory=description, memory_aspects=", ".join(aspects_strings))
+    return READING_STRING_TEMPLATE.format(memory=description, memory_aspects=aspects_strings.html())
 
 
 def format_lesson_description(lesson_id, xtrigger_aspect):
@@ -80,7 +79,7 @@ def format_lesson_description(lesson_id, xtrigger_aspect):
 
     description, aspects_list, _ = format_item_description(
         "Label", "aspects", matching_lessons[0])
-    return MASTERY_STRING_TEMPLATE.format(lesson=description, xtrigger_aspect=xtrigger_aspect, aspects=", ".join(aspects_list))
+    return MASTERY_STRING_TEMPLATE.format(lesson=description, xtrigger_aspect=xtrigger_aspect, aspects=aspects_list.html())
 
 
 def interpret_xtriggers_in_tomejson(xtriggers):
@@ -154,8 +153,8 @@ def format_crafting_recipes(skill_id):
 
         complete_recipe.add_recipe_line(
             recipe_name=recipe_name,
-            recipe_item_aspects=final_recipe_product_aspects,
-            aspects_needed_to_craft=aspect_list,
+            recipe_item_aspects=final_recipe_product_aspects.html(),
+            aspects_needed_to_craft=aspect_list.html(),
             additional_item=additional_items_for_recipe_names)
 
     return str(complete_recipe)
@@ -200,12 +199,13 @@ def format_cooking_recipes(cooked_item, item_modification):
             "Label", "aspects", cooked_product_id)
         additional_aspects = [BASE_LOOKUP.lookup_id(aspect, 1)[0]["label"]
                               for aspect in additional_aspects if aspect.startswith("course.")]
-        aspects_list.extend(additional_aspects)
+        aspects_list.extend_additional_aspects(additional_aspects)
+        print(recipe_name + ": ", ", ".join(recipe_ingredients_generic), aspects_list)
         for item in recipe_ingredients_to_modify:
             item_modification[item].add_recipe_line(
                 recipe_name=recipe_name,
-                recipe_item_aspects=aspects_list,
-                aspects_needed_to_craft=recipe_ingredients_generic)
+                recipe_item_aspects=aspects_list.html(),
+                aspects_needed_to_craft=", ".join(recipe_ingredients_generic))
     return item_modification
 
 
@@ -227,7 +227,7 @@ def generate_patched_catalogue(order_company):
         description, aspects_strings, _ = format_item_description(
             "Label", "aspects", item)
         recipe.add_recipe_line(recipe_name=description,
-                               aspects_needed_to_craft=aspects_strings)
+                               aspects_needed_to_craft=aspects_strings.html())
     return str(recipe)
 
 
@@ -240,7 +240,7 @@ def generate_patched_correspondence_summoning():
         description, aspects, additional_reqs = format_item_description(
             "label", "reqs", item=item)
         recipe.add_recipe_line(
-            recipe_name=description, aspects_needed_to_craft=aspects, additional_item=additional_reqs)
+            recipe_name=description, aspects_needed_to_craft=aspects.html(), additional_item=additional_reqs)
     return str(recipe)
 
 
