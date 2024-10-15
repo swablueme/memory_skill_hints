@@ -200,7 +200,8 @@ def format_cooking_recipes(cooked_item, item_modification):
         additional_aspects = [BASE_LOOKUP.lookup_id(aspect, 1)[0]["label"]
                               for aspect in additional_aspects if aspect.startswith("course.")]
         aspects_list.extend_additional_aspects(additional_aspects)
-        print(recipe_name + ": ", ", ".join(recipe_ingredients_generic), aspects_list)
+        # print(recipe_name, "(" + str(aspects_list) + "): ",
+        #       ", ".join(recipe_ingredients_generic))
         for item in recipe_ingredients_to_modify:
             item_modification[item].add_recipe_line(
                 recipe_name=recipe_name,

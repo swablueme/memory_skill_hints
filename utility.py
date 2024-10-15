@@ -2,6 +2,7 @@ from constants import *
 import json
 import re
 import functools
+import codecs
 
 
 def load_json(file):
@@ -9,8 +10,15 @@ def load_json(file):
     # JSON files in Book of Hours are in a variety of encodes - also make sure to run the json through a validator if it fails to load
     for encode in ["utf-8", "utf-16", "utf-16le"]:
         try:
-            with open(path, "r", encoding=encode) as f:
-                json_loaded = json.loads(f.read())
+            with open(path, "rb") as f:
+                # print dir(codecs) for other encodings
+                bom = codecs.BOM_UTF16_LE
+                text = f.read()
+                if text.startswith(bom):
+                    # strip away the BOM
+                    encoded_text = text[len(bom):]
+                    text = encoded_text.decode(encode)
+                json_loaded = json.loads(text)
                 print(f"{path} loading succeded for encoding: {encode}")
                 return json_loaded, encode
         except:
